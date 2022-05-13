@@ -17,6 +17,7 @@
   "scripts": {
     "build": "tsc",
     "start": "ts-node src/app.ts",
-    "lint": "eslint 'src/*.ts'"
+    "lint": "eslint 'src/*.ts'",
+    "labelmaker": "ts-node scripts/labelmaker.ts"
   }
 }
