@@ -54,6 +54,12 @@ const closedIssuesGauge = new Gauge({
     help: "The number of closed issues tracked against labels over the last 7 days."
 });
 
+const unlabelledIssuesGauge = new Gauge({
+    labelNames: ["repository"],
+    name: "github_unlabelled_issues",
+    help: "The number of issues with no labels."
+});
+
 
 export class RepoWatcher {
 	constructor(
@@ -116,6 +122,7 @@ export class RepoWatcher {
 	public async refreshMetrics() {
 		// Fetch existing data
 		const openIssues = await this.fetchIssues("OPEN");
+        const repository = `${this.owner}/${this.repo}`;
 		for (const label of this.labels) {
 			const allIssues = openIssues.filter(i => i.labels.includes(label));
 			const ownTeam = allIssues.filter(i => this.filterTeamMembers.includes(i.author)).length;
@@ -127,11 +134,16 @@ export class RepoWatcher {
             if (this.filterTeamMembers.length) {
                 openIssuesGauge.set({
                     isCommunity: "true",
-                    repository: `${this.owner}/${this.repo}`,
+                    repository,
                     label,
                 }, allIssues.length - ownTeam);
             }
 		}
+
+        unlabelledIssuesGauge.set(
+            {repository},
+            openIssues.filter(i => i.labels.length === 0).length
+        );
 		
 		// 7 days ago
 		const closedIssues = await this.fetchIssues("CLOSED", new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)));
