@@ -124,11 +124,13 @@ export class RepoWatcher {
 				repository: `${this.owner}/${this.repo}`,
 				label,
 			}, ownTeam);
-			openIssuesGauge.set({
-				isCommunity: "true",
-				repository: `${this.owner}/${this.repo}`,
-				label,
-			}, allIssues.length - ownTeam);
+            if (this.filterTeamMembers.length) {
+                openIssuesGauge.set({
+                    isCommunity: "true",
+                    repository: `${this.owner}/${this.repo}`,
+                    label,
+                }, allIssues.length - ownTeam);
+            }
 		}
 		
 		// 7 days ago
@@ -142,11 +144,13 @@ export class RepoWatcher {
 				repository: `${this.owner}/${this.repo}`,
 				label,
 			}, ownTeam);
-			closedIssuesGauge.set({
-				isCommunity: "true",
-				repository: `${this.owner}/${this.repo}`,
-				label,
-			}, allIssues.length - ownTeam);
+            if (this.filterTeamMembers.length) {
+                closedIssuesGauge.set({
+                    isCommunity: "true",
+                    repository: `${this.owner}/${this.repo}`,
+                    label,
+                }, allIssues.length - ownTeam);
+            }
 		}
 	}
 }
