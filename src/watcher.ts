@@ -54,9 +54,9 @@ const closedIssuesGauge = new Gauge({
     help: "The number of closed issues tracked against labels over the last 7 days."
 });
 
-const unlabelledIssuesGauge = new Gauge({
+const unlabeledIssuesGauge = new Gauge({
     labelNames: ["repository"],
-    name: "github_unlabelled_issues",
+    name: "github_unlabeled_issues",
     help: "The number of issues with no labels."
 });
 
@@ -140,7 +140,7 @@ export class RepoWatcher {
             }
 		}
 
-        unlabelledIssuesGauge.set(
+        unlabeledIssuesGauge.set(
             {repository},
             openIssues.filter(i => i.labels.length === 0).length
         );
