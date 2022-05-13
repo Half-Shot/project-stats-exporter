@@ -1,9 +1,8 @@
-import { collectDefaultMetrics, Registry } from "prom-client";
+import { collectDefaultMetrics, register } from "prom-client";
 import { createServer } from "http";
 
 export function startMetricsServer(port: number, hostname: string) {
-	const registry = new Registry();
-	collectDefaultMetrics({ register: registry });
+	collectDefaultMetrics();
 	const server = createServer((req, res) => {
 		if (req.url !== "/metrics") {
 			console.log(req.url);
@@ -18,7 +17,7 @@ export function startMetricsServer(port: number, hostname: string) {
 			res.end();
 			return;
 		}
-		registry.metrics().then(r => {
+		register.metrics().then(r => {
 			res.writeHead(200, { 'Content-Type': 'application/text' });
 			res.write(r);
 		}).catch(() => {
@@ -29,5 +28,5 @@ export function startMetricsServer(port: number, hostname: string) {
 		});
 	}).listen(port, hostname);
 	console.log(`Started server on ${hostname}:${port}`);
-	return { server, registry };
+	return { server };
 }

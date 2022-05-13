@@ -1,5 +1,5 @@
 import { startMetricsServer } from "./metrics";
-import { Octokit, App } from "octokit";
+import { Octokit } from "octokit";
 import { RepoWatcher } from "./watcher";
 
 const {
@@ -15,7 +15,7 @@ const {
 async function main() {
 	const port = EXPORTER_PORT ? parseInt(EXPORTER_PORT, 10) : 8080;
 	// Start metrics
-	const { server, registry } = startMetricsServer(port, EXPORTER_HOST || "127.0.0.1");
+	const { server } = startMetricsServer(port, EXPORTER_HOST || "127.0.0.1");
 
 	process.on('beforeExit', () => {
 		server.close();
@@ -56,7 +56,7 @@ async function main() {
 	const watchers: RepoWatcher[] = [];
 	for (const fullRepoName of repos) {
 		const [ org, repo ] = fullRepoName.split('/');
-		const watcher = new RepoWatcher(octokit, org, repo, filterLabels, filterTeamMembers, registry);
+		const watcher = new RepoWatcher(octokit, org, repo, filterLabels, filterTeamMembers);
 		await watcher.refreshMetrics();
 		watchers.push(watcher);
 	}

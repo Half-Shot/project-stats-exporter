@@ -8,11 +8,15 @@
     "prom-client": "^14.0.1"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.23.0",
+    "@typescript-eslint/parser": "^5.23.0",
+    "eslint": "^8.15.0",
     "ts-node": "^10.7.0",
     "typescript": "^4.6.4"
   },
   "scripts": {
     "build": "tsc",
-    "start": "ts-node src/app.ts"
+    "start": "ts-node src/app.ts",
+    "lint": "eslint 'src/*.ts'"
   }
 }

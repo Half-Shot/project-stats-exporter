@@ -1,5 +1,5 @@
 import { Octokit } from "octokit";
-import { Gauge, Registry } from "prom-client";
+import { Gauge } from "prom-client";
 
 // What do we want to know
 // # of open issues
@@ -35,27 +35,34 @@ interface FetchIssuesResponse {
 				}
 			}[],
 			pageInfo: {
-			  hasNextPage: boolean,
-			  endCursor: string,
+              hasNextPage: boolean,
+              endCursor: string,
 			},
 		}
 	}
 }
 
-export class RepoWatcher {
-	private readonly openIssuesGauge;
-	private readonly closedIssuesGauge;
+const openIssuesGauge = new Gauge({
+    labelNames: ["label", "isCommunity", "repository"],
+    name: "github_open_issues",
+    help: "The number of open issues tracked against labels."
+});
 
+const closedIssuesGauge = new Gauge({
+    labelNames: ["label", "isCommunity", "repository"],
+    name: "github_closed_issues",
+    help: "The number of closed issues tracked against labels over the last 7 days."
+});
+
+
+export class RepoWatcher {
 	constructor(
 		private readonly octokit: Octokit,
 		private readonly owner: string,
 		private readonly repo: string,
 		private readonly labels: string[],
-		private readonly filterTeamMembers: string[],
-		registry: Registry,
+		private readonly filterTeamMembers: string[]
 	) {
-		this.openIssuesGauge = new Gauge({labelNames: ["label", "isCommunity", "repository"], name: "github_open_issues", help: "The number of open issues tracked against labels.", registers: [registry]});
-		this.closedIssuesGauge = new Gauge({labelNames: ["label", "isCommunity", "repository"], name: "github_closed_issues", help: "The number of closed issues tracked against labels over the last 7 days.", registers: [registry]});
 	}
 
 	public async fetchIssues(state: "OPEN"|"CLOSED", since?: Date): Promise<CurrentIssue[]> {
@@ -112,12 +119,12 @@ export class RepoWatcher {
 		for (const label of this.labels) {
 			const allIssues = openIssues.filter(i => i.labels.includes(label));
 			const ownTeam = allIssues.filter(i => this.filterTeamMembers.includes(i.author)).length;
-			this.openIssuesGauge.set({
+			openIssuesGauge.set({
 				isCommunity: "false",
 				repository: `${this.owner}/${this.repo}`,
 				label,
 			}, ownTeam);
-			this.openIssuesGauge.set({
+			openIssuesGauge.set({
 				isCommunity: "true",
 				repository: `${this.owner}/${this.repo}`,
 				label,
@@ -130,19 +137,16 @@ export class RepoWatcher {
 		for (const label of this.labels) {
 			const allIssues = closedIssues.filter(i => i.labels.includes(label));
 			const ownTeam = allIssues.filter(i => this.filterTeamMembers.includes(i.author)).length;
-			this.closedIssuesGauge.set({
+			closedIssuesGauge.set({
 				isCommunity: "false",
 				repository: `${this.owner}/${this.repo}`,
 				label,
 			}, ownTeam);
-			this.closedIssuesGauge.set({
+			closedIssuesGauge.set({
 				isCommunity: "true",
 				repository: `${this.owner}/${this.repo}`,
 				label,
 			}, allIssues.length - ownTeam);
 		}
-	}
-
-	public getMetrics() {
 	}
 }
