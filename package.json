@@ -4,6 +4,7 @@
   "main": "lib/app.js",
   "license": "MIT",
   "dependencies": {
+    "dotenv": "^16.0.1",
     "octokit": "^1.7.1",
     "prom-client": "^14.0.1"
   },

@@ -1,5 +1,5 @@
 import { Octokit } from "octokit";
-import { Gauge } from "prom-client";
+import { Gauge, Histogram } from "prom-client";
 
 // What do we want to know
 // # of open issues
@@ -8,7 +8,7 @@ import { Gauge } from "prom-client";
 
 interface CurrentIssue {
 	id: string;
-	labels: string[];
+	labels: Set<string>;
 	author: string;
 	createdAt: Date;
 	updatedAt: Date;
@@ -42,11 +42,19 @@ interface FetchIssuesResponse {
 	}
 }
 
-const openIssuesGauge = new Gauge({
-    labelNames: ["label", "isCommunity", "repository"],
+const openIssuesDaysGauge = new Histogram({
+    labelNames: ["label", "repository", "community"],
     name: "github_open_issues",
-    help: "The number of open issues tracked against labels."
+    help: "The number of open issues tracked against labels. This is tracked in number of open days.",
+	buckets: [
+		1,
+		7,
+		14,
+		28,
+		28 * 3,
+	]
 });
+
 
 const closedIssuesGauge = new Gauge({
     labelNames: ["label", "isCommunity", "repository"],
@@ -67,7 +75,7 @@ export class RepoWatcher {
 		private readonly owner: string,
 		private readonly repo: string,
 		private readonly labels: string[],
-		private readonly filterTeamMembers: string[]
+		private readonly filterTeamMembers: Set<string>,
 	) {
 	}
 
@@ -110,8 +118,8 @@ export class RepoWatcher {
 			}) as FetchIssuesResponse;
 			issues.push(...res.repository.issues.edges.map(issue => ({
 				id: issue.node.id,
-				author: issue.node.author.login,
-				labels: issue.node.labels.edges.map(l => l.node.name),
+				author: issue.node.author?.login,
+				labels: new Set(issue.node.labels.edges.map(l => l.node.name)),
 				createdAt: new Date(issue.node.createdAt),
 				updatedAt: new Date(issue.node.updatedAt),
 			} as CurrentIssue)));
@@ -124,42 +132,35 @@ export class RepoWatcher {
 		const openIssues = await this.fetchIssues("OPEN");
         const repository = `${this.owner}/${this.repo}`;
 		for (const label of this.labels) {
-			const allIssues = openIssues.filter(i => i.labels.includes(label));
-			const ownTeam = allIssues.filter(i => this.filterTeamMembers.includes(i.author)).length;
-			openIssuesGauge.set({
-				isCommunity: "false",
-				repository: `${this.owner}/${this.repo}`,
-				label,
-			}, ownTeam);
-            if (this.filterTeamMembers.length) {
-                openIssuesGauge.set({
-                    isCommunity: "true",
-                    repository,
-                    label,
-                }, allIssues.length - ownTeam);
-            }
+			openIssuesDaysGauge.remove({ repository, label });
+			for (const issue of openIssues.filter(i => i.labels.has(label))) {
+				const community = this.filterTeamMembers.has(issue.author);
+				const age = Math.floor(Date.now() - issue.createdAt.getTime() / (24 * 60 * 60 * 1000));
+				openIssuesDaysGauge.observe({ community: community.toString(), repository, label: label }, age);
+			}
 		}
 
         unlabeledIssuesGauge.set(
             {repository},
-            openIssues.filter(i => i.labels.length === 0).length
+            openIssues.filter(i => i.labels.size === 0).length
         );
+		
 		
 		// 7 days ago
 		const closedIssues = await this.fetchIssues("CLOSED", new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)));
 		
 		for (const label of this.labels) {
-			const allIssues = closedIssues.filter(i => i.labels.includes(label));
-			const ownTeam = allIssues.filter(i => this.filterTeamMembers.includes(i.author)).length;
+			const allIssues = closedIssues.filter(i => i.labels.has(label));
+			const ownTeam = allIssues.filter(i => this.filterTeamMembers.has(i.author)).length;
 			closedIssuesGauge.set({
 				isCommunity: "false",
-				repository: `${this.owner}/${this.repo}`,
+				repository,
 				label,
 			}, ownTeam);
-            if (this.filterTeamMembers.length) {
+            if (this.filterTeamMembers.size) {
                 closedIssuesGauge.set({
                     isCommunity: "true",
-                    repository: `${this.owner}/${this.repo}`,
+                    repository,
                     label,
                 }, allIssues.length - ownTeam);
             }

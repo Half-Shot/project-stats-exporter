@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { startMetricsServer } from "./metrics";
 import { Octokit } from "octokit";
 import { RepoWatcher } from "./watcher";
@@ -44,13 +45,13 @@ async function main() {
 		throw Error('Failed to authenticate with GitHub');
 	}
 
-	let filterTeamMembers: string[] = [];
+	let filterTeamMembers: Set<string> = new Set();
 
 	if (EXPROTER_TEAM) {
 		const [ org, team ] = EXPROTER_TEAM.split('/');
 		const members = (await octokit.rest.teams.listMembersInOrg({ org, team_slug: team })).data;
-		filterTeamMembers = members.map(m => m.login);
-		console.log(`Filtering out ${filterTeamMembers.length} team members in ${EXPROTER_TEAM}`);
+		filterTeamMembers = new Set(members.map(m => m.login));
+		console.log(`Filtering out ${filterTeamMembers.size} team members in ${EXPROTER_TEAM}`);
 	}
 
 	const watchers: RepoWatcher[] = [];
