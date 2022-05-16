@@ -10,13 +10,14 @@ const {
 	EXPORTER_REPOS,
 	EXPORTER_LABELS,
 	EXPORTER_TOKEN,
-	EXPORTER_PERIOD
+	EXPORTER_PERIOD,
+	EXPORTER_BEARER_TOKEN,
 } = process.env;
 
 async function main() {
 	const port = EXPORTER_PORT ? parseInt(EXPORTER_PORT, 10) : 8080;
 	// Start metrics
-	const { server } = startMetricsServer(port, EXPORTER_HOST || "127.0.0.1");
+	const { server } = startMetricsServer(port, EXPORTER_HOST || "127.0.0.1", EXPORTER_BEARER_TOKEN);
 
 	process.on('beforeExit', () => {
 		server.close();

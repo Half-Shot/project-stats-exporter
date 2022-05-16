@@ -1,11 +1,15 @@
 import { collectDefaultMetrics, register } from "prom-client";
 import { createServer } from "http";
 
-export function startMetricsServer(port: number, hostname: string) {
+export function startMetricsServer(port: number, hostname: string, bearerToken?: string) {
 	collectDefaultMetrics();
 	const server = createServer((req, res) => {
+		if (req.headers["authorization"]?.slice('Bearer '.length) !== bearerToken) {
+			res.writeHead(401, { 'Content-Type': 'application/text' });
+			res.write("Unauthorized");
+			res.end();
+		}
 		if (req.url !== "/metrics") {
-			console.log(req.url);
 			res.writeHead(404, { 'Content-Type': 'application/text' });
 			res.write("Unknown path. Try /metrics");
 			res.end();
