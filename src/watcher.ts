@@ -1,11 +1,6 @@
 import { Octokit } from "octokit";
 import { Gauge, Histogram } from "prom-client";
 
-// What do we want to know
-// # of open issues
-//   -- by label
-// # of closed issues in the last N days
-
 interface CurrentIssue {
 	id: string;
 	labels: Set<string>;
@@ -42,6 +37,8 @@ interface FetchIssuesResponse {
 	}
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const openIssuesDaysGauge = new Histogram({
     labelNames: ["label", "repository", "community"],
     name: "github_open_issues",
@@ -74,7 +71,7 @@ export class RepoWatcher {
 		private readonly octokit: Octokit,
 		private readonly owner: string,
 		private readonly repo: string,
-		private readonly labels: string[],
+		private readonly githubLabels: string[],
 		private readonly filterTeamMembers: Set<string>,
 	) {
 	}
@@ -131,11 +128,11 @@ export class RepoWatcher {
 		// Fetch existing data
 		const openIssues = await this.fetchIssues("OPEN");
         const repository = `${this.owner}/${this.repo}`;
-		for (const label of this.labels) {
+		for (const label of this.githubLabels) {
 			openIssuesDaysGauge.remove({ repository, label });
 			for (const issue of openIssues.filter(i => i.labels.has(label))) {
 				const community = this.filterTeamMembers.has(issue.author);
-				const age = Math.floor(Date.now() - issue.createdAt.getTime() / (24 * 60 * 60 * 1000));
+				const age = Math.floor(Date.now() - issue.createdAt.getTime() / DAY_MS);
 				openIssuesDaysGauge.observe({ community: community.toString(), repository, label: label }, age);
 			}
 		}
@@ -146,10 +143,11 @@ export class RepoWatcher {
         );
 		
 		
-		// 7 days ago
-		const closedIssues = await this.fetchIssues("CLOSED", new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)));
+		const closedIssues = await this.fetchIssues("CLOSED", new Date(
+			Date.now() - (7 * DAY_MS)
+		));
 		
-		for (const label of this.labels) {
+		for (const label of this.githubLabels) {
 			const allIssues = closedIssues.filter(i => i.labels.has(label));
 			const ownTeam = allIssues.filter(i => this.filterTeamMembers.has(i.author)).length;
 			closedIssuesGauge.set({
