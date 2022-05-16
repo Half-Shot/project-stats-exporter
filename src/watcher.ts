@@ -133,7 +133,7 @@ export class RepoWatcher {
 			openIssuesDaysBucket.remove({ repository, label, community: "false" });
 			for (const issue of openIssues.filter(i => i.labels.has(label))) {
 				const community = this.filterTeamMembers.has(issue.author);
-				const age = Math.floor(Date.now() - issue.createdAt.getTime() / DAY_MS);
+				const age = Math.floor((Date.now() - issue.createdAt.getTime()) / DAY_MS);
 				openIssuesDaysBucket.observe({ community: community.toString(), repository, label: label }, age);
 			}
 		}
