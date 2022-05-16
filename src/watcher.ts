@@ -39,7 +39,7 @@ interface FetchIssuesResponse {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const openIssuesDaysGauge = new Histogram({
+const openIssuesDaysBucket = new Histogram({
     labelNames: ["label", "repository", "community"],
     name: "github_open_issues",
     help: "The number of open issues tracked against labels. This is tracked in number of open days.",
@@ -129,11 +129,12 @@ export class RepoWatcher {
 		const openIssues = await this.fetchIssues("OPEN");
         const repository = `${this.owner}/${this.repo}`;
 		for (const label of this.githubLabels) {
-			openIssuesDaysGauge.remove({ repository, label });
+			openIssuesDaysBucket.remove({ repository, label, community: "true" });
+			openIssuesDaysBucket.remove({ repository, label, community: "false" });
 			for (const issue of openIssues.filter(i => i.labels.has(label))) {
 				const community = this.filterTeamMembers.has(issue.author);
 				const age = Math.floor(Date.now() - issue.createdAt.getTime() / DAY_MS);
-				openIssuesDaysGauge.observe({ community: community.toString(), repository, label: label }, age);
+				openIssuesDaysBucket.observe({ community: community.toString(), repository, label: label }, age);
 			}
 		}
 
