@@ -33,7 +33,7 @@ export interface FetchIssuesResponse {
 	}
 }
 
-export async function fetchIssues(octokit: Octokit, query: { owner: string, repo: string, after: string|number, state: "OPEN"|"CLOSED", since?: Date}): Promise<FetchIssuesResponse> {
+export async function fetchIssues(octokit: Octokit, query: { owner: string, repo: string, after?: string, state: "OPEN"|"CLOSED", since?: Date}): Promise<FetchIssuesResponse> {
     return octokit.graphql(await fetchIssuesSrc, { 
         owner: query.owner,
         name: query.repo,

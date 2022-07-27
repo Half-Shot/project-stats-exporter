@@ -100,6 +100,15 @@ const pullRequestsMerged = new Gauge({
     help: "The number of merged pull requests in the last 7 days."
 });
 
+export function resetMetrics() {
+	openIssuesDaysBucket.reset();
+	openPullRequestsDaysBucket.reset();
+	pullRequestsTimeToReviewDaysBucket.reset();
+	pullRequestsReviewState.reset();
+	pullRequestsClosed.reset();
+	pullRequestsMerged.reset();
+}
+
 export class RepoWatcher {
 	constructor(
 		private readonly octokit: Octokit,
@@ -126,7 +135,6 @@ export class RepoWatcher {
 	}
 
 	public async refreshIssueMetrics() {
-		openIssuesDaysBucket.reset();
 		// Fetch existing data
 		const openIssues = await this.fetchIssues("OPEN");
         const repository = `${this.owner}/${this.repo}`;
@@ -216,12 +224,6 @@ export class RepoWatcher {
 	public async refreshPrMetrics() {
 		const openPullRequests = await this.fetchPullRequests();
         const repository = `${this.owner}/${this.repo}`;
-		
-		openPullRequestsDaysBucket.reset();
-		pullRequestsTimeToReviewDaysBucket.reset();
-		pullRequestsReviewState.reset();
-		pullRequestsClosed.reset();
-		pullRequestsMerged.reset();
 	
 		for (const pr of openPullRequests) {
 			const community = this.filterTeamMembers.has(pr.author);
