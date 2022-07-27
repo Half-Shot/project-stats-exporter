@@ -204,7 +204,6 @@ export class RepoWatcher {
 					state: pr.node.state,
 				}
 				if (currentPR.updatedAt < since) {
-					console.log(currentPR.updatedAt.toISOString(), prs.length);
 					end = true;
 					break;
 				}
@@ -247,7 +246,6 @@ export class RepoWatcher {
 		const mergedClosedPullRequests = await this.fetchPullRequestsMergedClosed(new Date(
 			Date.now() - (7 * DAY_MS)
 		));
-		console.log(mergedClosedPullRequests);
 
 		for (const pr of mergedClosedPullRequests) {
 			const community = this.filterTeamMembers.has(pr.author);
