@@ -1,0 +1,39 @@
+query fetchPullRequests($name: String!, $owner: String!, $state: PullRequestState!, $after: String) {
+    repository(name: $name, owner: $owner) {
+        pullRequests(first: 5, after: $after, orderBy: { field: CREATED_AT, direction: DESC}, states: [$state]) {
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+            edges {
+                node {
+                  author {
+                      login
+                  }
+                  updatedAt
+                  createdAt
+                  isDraft
+                  latestReviews(last: 1) {
+                    edges {
+                      node {
+                        updatedAt
+                        author {
+                          login
+                        }
+                      }
+                    }
+                  },
+                  reviewRequests(first: 1) {
+                    edges {
+                      node {
+                        id,
+                        
+                      }
+                    }
+                  }
+                  reviewDecision,
+                }
+            }
+        }
+    }
+}

@@ -7,8 +7,9 @@ WORKDIR /build
 RUN yarn --pure-lockfile && yarn build && yarn cache clean
 
 # Stage 1: The actual container
-FROM node:16-alpine
+FROM node:18-alpine
 RUN mkdir /app
+COPY --from=builder /build/queries /app/queries
 COPY --from=builder /build/lib /app/lib
 COPY --from=builder /build/yarn.lock /app
 COPY --from=builder /build/package*.json /app

@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 // Script to set some labels across several projects
 import { Octokit } from "octokit";
 

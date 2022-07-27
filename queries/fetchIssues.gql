@@ -1,0 +1,27 @@
+query fetchIssues($name: String!, $owner: String!, $filter: IssueFilters! $after: String) {
+    repository(name: $name, owner: $owner) {
+        issues(first: 100, filterBy: $filter, after: $after) {
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+            edges {
+                node {
+                    id
+                    labels(first: 10) {
+                        edges {
+                            node {
+                                name
+                            }
+                        }
+                    }
+                    author {
+                        login
+                    }
+                    updatedAt
+                    createdAt
+                }
+            }
+        }
+    }
+}
