@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { startMetricsServer } from "./metrics";
 import { Octokit } from "octokit";
-import { RepoWatcher, resetMetrics } from "./watcher";
+import { RepoWatcher } from "./watcher";
 
 const {
 	EXPORTER_PORT,
@@ -68,7 +68,6 @@ async function main() {
 	const refreshPeriod = Math.ceil(refreshPeriodMinutes / watchers.length);
 
 	const int = setInterval(() => {
-		resetMetrics();
 		watchers[watcherIndex].refreshMetrics();
 		watcherIndex++;
 		if (watcherIndex === watchers.length) {

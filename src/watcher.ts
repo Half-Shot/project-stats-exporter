@@ -50,7 +50,7 @@ const unlabeledIssuesGauge = new Gauge({
 });
 
 const openPullRequestsDaysBucket = new Histogram({
-    labelNames: ["label", "isCommunity", "repository"],
+    labelNames: ["isCommunity", "repository"],
     name: "github_pull_requests_open_days",
     help: "The number of open PRs.",
 	buckets: [
@@ -99,16 +99,6 @@ const pullRequestsMerged = new Gauge({
     name: "github_pull_requests_merged",
     help: "The number of merged pull requests in the last 7 days."
 });
-
-export function resetMetrics() {
-	openIssuesDaysBucket.reset();
-	openPullRequestsDaysBucket.reset();
-	pullRequestsTimeToReviewDaysBucket.reset();
-	pullRequestsReviewState.reset();
-	pullRequestsClosed.reset();
-	pullRequestsMerged.reset();
-}
-
 export class RepoWatcher {
 	constructor(
 		private readonly octokit: Octokit,
@@ -139,10 +129,12 @@ export class RepoWatcher {
 		const openIssues = await this.fetchIssues("OPEN");
         const repository = `${this.owner}/${this.repo}`;
 		for (const label of this.githubLabels) {
+			openIssuesDaysBucket.zero({ isCommunity: "true", repository, label });
+			openIssuesDaysBucket.zero({ isCommunity: "false", repository, label });
 			for (const issue of openIssues.filter(i => i.labels.has(label))) {
 				const community = this.filterTeamMembers.has(issue.author);
 				const age = Math.floor((Date.now() - issue.createdAt.getTime()) / DAY_MS);
-				openIssuesDaysBucket.observe({ isCommunity: community.toString(), repository, label: label }, age);
+				openIssuesDaysBucket.observe({ isCommunity: community.toString(), repository, label }, age);
 			}
 		}
 
@@ -211,7 +203,7 @@ export class RepoWatcher {
 					updatedAt: new Date(pr.node.updatedAt),
 					state: pr.node.state,
 				}
-				if (currentPR.updatedAt < since) {
+				if (currentPR.updatedAt.getTime() < since.getTime()) {
 					end = true;
 					break;
 				}
@@ -222,8 +214,24 @@ export class RepoWatcher {
 	}
 
 	public async refreshPrMetrics() {
-		const openPullRequests = await this.fetchPullRequests();
         const repository = `${this.owner}/${this.repo}`;
+
+		// Reset all metrics
+		openPullRequestsDaysBucket.zero({ repository, isCommunity: "true"});
+		openPullRequestsDaysBucket.zero({ repository, isCommunity: "false"});
+		pullRequestsTimeToReviewDaysBucket.zero({ repository, isCommunity: "true"});
+		pullRequestsTimeToReviewDaysBucket.zero({ repository, isCommunity: "false"});
+		for (const state of Object.values(PullRequestReviewState)) {
+			pullRequestsReviewState.remove({ state, repository, isCommunity: "true"});
+			pullRequestsReviewState.remove({ state, repository, isCommunity: "false"});
+		}
+		pullRequestsClosed.remove({ repository, isCommunity: "true"});
+		pullRequestsClosed.remove({ repository, isCommunity: "false"});
+		pullRequestsMerged.remove({ repository, isCommunity: "true"});
+		pullRequestsMerged.remove({ repository, isCommunity: "false"});
+
+
+		const openPullRequests = await this.fetchPullRequests();
 	
 		for (const pr of openPullRequests) {
 			const community = this.filterTeamMembers.has(pr.author);
@@ -249,6 +257,7 @@ export class RepoWatcher {
 			Date.now() - (7 * DAY_MS)
 		));
 
+
 		for (const pr of mergedClosedPullRequests) {
 			const community = this.filterTeamMembers.has(pr.author);
 			if (pr.state === "CLOSED") {
@@ -261,7 +270,7 @@ export class RepoWatcher {
 }
 
 	public async refreshMetrics() {
-		await this.refreshIssueMetrics();
+		//await this.refreshIssueMetrics();
 		await this.refreshPrMetrics();
 	}
 }
