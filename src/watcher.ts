@@ -270,7 +270,7 @@ export class RepoWatcher {
 }
 
 	public async refreshMetrics() {
-		//await this.refreshIssueMetrics();
+		await this.refreshIssueMetrics();
 		await this.refreshPrMetrics();
 	}
 }
