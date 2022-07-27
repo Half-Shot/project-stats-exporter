@@ -132,7 +132,7 @@ export class RepoWatcher {
 			openIssuesDaysBucket.zero({ isCommunity: "true", repository, label });
 			openIssuesDaysBucket.zero({ isCommunity: "false", repository, label });
 			for (const issue of openIssues.filter(i => i.labels.has(label))) {
-				const community = this.filterTeamMembers.has(issue.author);
+				const community = !this.filterTeamMembers.has(issue.author);
 				const age = Math.floor((Date.now() - issue.createdAt.getTime()) / DAY_MS);
 				openIssuesDaysBucket.observe({ isCommunity: community.toString(), repository, label }, age);
 			}
@@ -234,7 +234,7 @@ export class RepoWatcher {
 		const openPullRequests = await this.fetchPullRequests();
 	
 		for (const pr of openPullRequests) {
-			const community = this.filterTeamMembers.has(pr.author);
+			const community = !this.filterTeamMembers.has(pr.author);
 			const age = Math.floor((Date.now() - pr.createdAt.getTime()) / DAY_MS);
 			openPullRequestsDaysBucket.observe({ isCommunity: community.toString(), repository }, age);
 
@@ -259,7 +259,7 @@ export class RepoWatcher {
 
 
 		for (const pr of mergedClosedPullRequests) {
-			const community = this.filterTeamMembers.has(pr.author);
+			const community = !this.filterTeamMembers.has(pr.author);
 			if (pr.state === "CLOSED") {
 				pullRequestsClosed.inc({ isCommunity: community.toString(), repository });
 			} else if (pr.state === "MERGED") {
